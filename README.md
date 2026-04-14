@@ -1,6 +1,6 @@
-# ⬡ AlphaTrace — Verifiable AI Trading Agent on 0G
+# ⬡ AlphaTrace  Verifiable AI Trading Agent on 0G
 
-> **AlphaTrace is an autonomous AI trading agent whose every decision is permanently stored on 0G Storage and verifiable on 0G Chain — making AI-driven DeFi trustless for the first time.**
+> **AlphaTrace is an autonomous AI trading agent whose every decision is permanently stored on 0G Storage and verifiable on 0G Chain  making AI-driven DeFi trustless for the first time.**
 
 License: MIT
 
@@ -33,7 +33,7 @@ AlphaTrace is the **first AI trading agent where the entire decision history is 
 2. Every decision (BUY/SELL/HOLD + reasoning + confidence + indicators) is **stored immutably on 0G Storage**
 3. The content hash of that decision is **anchored on 0G Chain** via a smart contract
 4. Anyone can **cross-verify**: take the chain hash → retrieve from 0G Storage → confirm it matches
-5. **Zero trust required** — the blockchain is the arbiter
+5. **Zero trust required**  the blockchain is the arbiter
 
 ---
 
@@ -42,7 +42,7 @@ AlphaTrace is the **first AI trading agent where the entire decision history is 
 | Component | Role |
 |-----------|------|
 | **0G Storage** | Every AI decision JSON is stored immutably with content-addressed hashing |
-| **0G Chain** | Smart contract records decision hash + metadata — publicly queryable |
+| **0G Chain** | Smart contract records decision hash + metadata  publicly queryable |
 | **0G Compute** | AI model inference runs via 0G Compute network (TEE-enabled) |
 | **Sealed Inference** | Strategy logic runs in TEE to prevent front-running |
 
