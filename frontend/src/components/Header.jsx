@@ -63,7 +63,7 @@ export default function Header({ wsConnected }) {
 
           {/* GitHub */}
           <a
-            href="https://github.com"
+            href="https://github.com/YousufAziz1/alphatrace"
             target="_blank"
             rel="noopener noreferrer"
             className="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center hover:bg-gray-700 transition-all duration-200"
