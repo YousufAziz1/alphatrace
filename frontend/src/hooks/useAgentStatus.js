@@ -1,10 +1,11 @@
-// useAgentStatus.js — Custom hook for agent status polling
+// useAgentStatus.js — Custom hook for agent status polling + start/stop
 import { useState, useEffect, useCallback } from 'react'
-import { getAgentStatus, triggerAgent } from '../utils/api'
+import { getAgentStatus, triggerAgent, stopAgent, startAgent } from '../utils/api'
 
 export function useAgentStatus() {
   const [agentStatus, setAgentStatus] = useState({
     isRunning: false,
+    isPaused: false,
     status: 'IDLE',
     lastRunTime: null,
     nextRunTime: null,
@@ -14,6 +15,8 @@ export function useAgentStatus() {
     lastError: null,
   })
   const [triggering, setTriggering] = useState(false)
+  const [stopping, setStopping] = useState(false)
+  const [starting, setStarting] = useState(false)
   const [triggerMessage, setTriggerMessage] = useState(null)
 
   const fetchStatus = useCallback(async () => {
@@ -26,13 +29,12 @@ export function useAgentStatus() {
   }, [])
 
   const trigger = useCallback(async () => {
-    if (triggering || agentStatus.isRunning) return
+    if (triggering || agentStatus.isRunning || agentStatus.isPaused) return
     try {
       setTriggering(true)
       const result = await triggerAgent()
       setTriggerMessage(result.message || 'Agent cycle started!')
       setTimeout(() => setTriggerMessage(null), 4000)
-      // Start polling faster
       const fastPoll = setInterval(fetchStatus, 1500)
       setTimeout(() => clearInterval(fastPoll), 60000)
     } catch (err) {
@@ -41,7 +43,43 @@ export function useAgentStatus() {
     } finally {
       setTriggering(false)
     }
-  }, [triggering, agentStatus.isRunning, fetchStatus])
+  }, [triggering, agentStatus.isRunning, agentStatus.isPaused, fetchStatus])
+
+  const stop = useCallback(async () => {
+    try {
+      setStopping(true)
+      const result = await stopAgent()
+      if (result.success) {
+        setAgentStatus((prev) => ({ ...prev, ...result.status }))
+        setTriggerMessage('🛑 Agent stopped.')
+        setTimeout(() => setTriggerMessage(null), 3000)
+      }
+    } catch (err) {
+      setTriggerMessage(`Stop Error: ${err.message}`)
+      setTimeout(() => setTriggerMessage(null), 3000)
+    } finally {
+      setStopping(false)
+    }
+  }, [])
+
+  const start = useCallback(async () => {
+    try {
+      setStarting(true)
+      const result = await startAgent()
+      if (result.success) {
+        setAgentStatus((prev) => ({ ...prev, ...result.status }))
+        setTriggerMessage('▶️ Agent started!')
+        setTimeout(() => setTriggerMessage(null), 3000)
+        const fastPoll = setInterval(fetchStatus, 1500)
+        setTimeout(() => clearInterval(fastPoll), 30000)
+      }
+    } catch (err) {
+      setTriggerMessage(`Start Error: ${err.message}`)
+      setTimeout(() => setTriggerMessage(null), 3000)
+    } finally {
+      setStarting(false)
+    }
+  }, [fetchStatus])
 
   // Update from WebSocket message
   const updateFromWS = useCallback((wsData) => {
@@ -54,5 +92,5 @@ export function useAgentStatus() {
     return () => clearInterval(interval)
   }, [fetchStatus])
 
-  return { agentStatus, triggering, triggerMessage, trigger, updateFromWS }
+  return { agentStatus, triggering, stopping, starting, triggerMessage, trigger, stop, start, updateFromWS }
 }

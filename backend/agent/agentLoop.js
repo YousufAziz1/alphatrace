@@ -18,12 +18,13 @@ const decisionLogger = require('./decisionLogger')
 // ── Agent State ───────────────────────────────────────────────────────────────
 const agentState = {
   isRunning: false,
+  isPaused: false,   // true = user stopped the agent, auto-loop will skip
   lastRunTime: null,
   nextRunTime: null,
   totalDecisions: 0,
   cycleCount: 0,
   lastError: null,
-  status: 'IDLE',  // 'IDLE' | 'RUNNING' | 'ERROR'
+  status: 'IDLE',  // 'IDLE' | 'RUNNING' | 'ERROR' | 'STOPPED'
   currentMarkets: [],
 }
 
@@ -44,6 +45,11 @@ const TARGET_MARKETS = ['ethereum', 'bitcoin', 'solana', 'arbitrum']
 async function runAgentCycle() {
   if (agentState.isRunning) {
     console.log('[Agent] Cycle already running — skipping')
+    return []
+  }
+
+  if (agentState.isPaused) {
+    console.log('[Agent] Skipping cycle — agent is paused by user.')
     return []
   }
 
@@ -202,9 +208,29 @@ function startAgentLoop() {
   return task
 }
 
+// ── stopAgent / startAgent ────────────────────────────────────────────────────
+function stopAgent() {
+  agentState.isPaused = true
+  agentState.status = 'STOPPED'
+  agentState.isRunning = false
+  console.log('[Agent] 🛑 Agent stopped by user.')
+  broadcast('AGENT_STATUS', { ...agentState })
+}
+
+function startAgent() {
+  agentState.isPaused = false
+  agentState.status = 'IDLE'
+  console.log('[Agent] ▶️  Agent started by user.')
+  broadcast('AGENT_STATUS', { ...agentState })
+  // Immediately run a cycle on resume
+  runAgentCycle().catch((err) => console.error('[Agent] Start cycle error:', err.message))
+}
+
 module.exports = {
   runAgentCycle,
   startAgentLoop,
+  stopAgent,
+  startAgent,
   agentState,
   setBroadcast,
 }

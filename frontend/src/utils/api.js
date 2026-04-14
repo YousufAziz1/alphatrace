@@ -43,6 +43,16 @@ export const getAgentStatus = async () => {
   return data
 }
 
+export const stopAgent = async () => {
+  const { data } = await api.post('/agent/stop')
+  return data
+}
+
+export const startAgent = async () => {
+  const { data } = await api.post('/agent/start')
+  return data
+}
+
 // ── Storage verification ─────────────────────────────────────────────────────
 export const verifyStorage = async (storageHash) => {
   const { data } = await api.get(`/verify/${encodeURIComponent(storageHash)}`)

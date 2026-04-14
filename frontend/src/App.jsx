@@ -26,7 +26,7 @@ export default function App() {
     wsRef,
   } = useDecisions()
 
-  const { agentStatus, triggering, triggerMessage, trigger, updateFromWS } = useAgentStatus()
+  const { agentStatus, triggering, stopping, starting, triggerMessage, trigger, stop, start, updateFromWS } = useAgentStatus()
   const [selectedMarket, setSelectedMarket] = useState(null)
 
   // Forward agent WS status updates from the shared WS connection
@@ -109,8 +109,12 @@ export default function App() {
             <AgentStatusCard
               agentStatus={agentStatus}
               triggering={triggering}
+              stopping={stopping}
+              starting={starting}
               triggerMessage={triggerMessage}
               onTrigger={trigger}
+              onStop={stop}
+              onStart={start}
             />
 
             {/* Market selector */}
