@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: alphatrace-backend
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false
+      - key: CONTRACT_ADDRESS
+        value: 0x428B490C2fb0E3137AfB478adc7cF3B668209534
+      - key: AGENT_ADDRESS
+        value: 0xe353E13F3600d5874B1898C05bE00960f2f8bfA0
+      - key: OG_CHAIN_RPC
+        value: https://evmrpc-testnet.0g.ai
+      - key: OG_CHAIN_ID
+        value: 16602
+      - key: OG_INDEXER_RPC
+        value: https://indexer-storage.0g.ai
+      - key: FRONTEND_URL
+        sync: false

@@ -1,0 +1,31 @@
+{
+  "name": "alphatrace-backend",
+  "version": "1.0.0",
+  "description": "AlphaTrace backend API — Autonomous DeFi Agent",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "dev:nodemon": "nodemon server.js"
+  },
+  "dependencies": {
+    "@0glabs/0g-ts-sdk": "^0.2.1",
+    "@google/generative-ai": "^0.21.0",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ethers": "6.13.1",
+    "express": "^4.21.1",
+    "helmet": "^8.0.0",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
