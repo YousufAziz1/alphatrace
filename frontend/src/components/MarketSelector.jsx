@@ -4,10 +4,8 @@ import { getMarkets } from '../utils/api'
 import { formatPrice, getChangeColor, formatNumber } from '../utils/formatters'
 
 const MARKETS = [
-  { id: 'ETH/USDC', symbol: 'ETH', coinId: 'ethereum', icon: '⟠' },
+  { id: 'ETH/USDC', symbol: 'ETH', coinId: 'ethereum', icon: '⧡' },
   { id: 'BTC/USDC', symbol: 'BTC', coinId: 'bitcoin',  icon: '₿' },
-  { id: 'SOL/USDC', symbol: 'SOL', coinId: 'solana',   icon: '◎' },
-  { id: 'ARB/USDC', symbol: 'ARB', coinId: 'arbitrum', icon: '△' },
 ]
 
 export default function MarketSelector({ selectedMarket, onSelect }) {
