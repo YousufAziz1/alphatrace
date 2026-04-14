@@ -86,6 +86,8 @@ AlphaTrace is the **first AI trading agent where the entire decision history is 
               └─────────────────┘
 ```
 
+> **⚡ OPTIONAL (Pro Level Upgrade):** Currently, the agent uses the **Gemini 1.5 Flash API (free tier)** for rapid prototyping and zero-cost operation. For production-grade inference, it is recommended to upgrade the engine to **Anthropic Claude** or **OpenAI GPT-4o** for stronger market analysis.
+
 ---
 
 ## 📁 Project Structure
