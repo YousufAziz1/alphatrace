@@ -148,7 +148,7 @@ npm run dev
 
 | Name | Role |
 |------|------|
-| **Yousuf** | Full-Stack Developer & AI/Blockchain Engineer |
+| [**Yousuf Aziz**](https://github.com/YousufAziz1) | Full-Stack Developer & AI/Blockchain Engineer |
 
 ---
 
