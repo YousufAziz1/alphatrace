@@ -3,7 +3,7 @@
 > **AlphaTrace is an autonomous AI trading agent whose every decision is permanently stored on 0G Storage and verifiable on 0G Chain — making AI-driven DeFi trustless for the first time.**
 
 [![0G Chain](https://img.shields.io/badge/0G%20Mainnet-16600-purple)](https://chainscan-galileo.0g.ai)
-[![Claude](https://img.shields.io/badge/AI-Claude%20Sonnet-orange)](https://anthropic.com)
+[![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-blue)](https://ai.google.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
@@ -24,7 +24,7 @@ AI trading bots are **black boxes**. Billions of dollars flow through these syst
 
 AlphaTrace is the **first AI trading agent where the entire decision history is publicly verifiable on-chain**. Here's how:
 
-1. **Claude AI** analyzes 4 crypto markets every 5 minutes with full market data
+1. **Gemini AI (1.5 Flash)** analyzes crypto markets every 5 minutes with full market data
 2. Every decision (BUY/SELL/HOLD + reasoning + confidence + indicators) is **stored immutably on 0G Storage**
 3. The content hash of that decision is **anchored on 0G Chain** via a smart contract
 4. Anyone can **cross-verify**: take the chain hash → retrieve from 0G Storage → confirm it matches
@@ -61,8 +61,8 @@ AlphaTrace is the **first AI trading agent where the entire decision history is 
       │                                                  ▲
       ▼                              Verify              │
   ┌───────────┐   ┌──────────────┐  ────────►  ┌──────────────┐
-  │  Market   │──►│  Claude AI   │             │  0G Chain    │
-  │  Data     │   │  (Sonnet)    │             │  Contract    │
+  │  Market   │   │  Gemini AI   │             │  0G Chain    │
+  │  Data     │   │  (Flash)     │             │  Contract    │
   │  Service  │   └──────┬───────┘             │  AlphaTrace  │
   └───────────┘          │Decision             └──────────────┘
                          │JSON                        ▲
@@ -98,7 +98,7 @@ alphatrace/
 │       ├── hooks/          # useDecisions, useAgentStatus
 │       └── utils/          # api.js, formatters.js
 ├── backend/                # Node.js Express API
-│   ├── services/           # Claude, 0G Storage, 0G Chain, Market Data
+│   ├── services/           # Gemini, 0G Storage, 0G Chain, Market Data
 │   ├── agent/              # agentLoop.js, decisionLogger.js
 │   └── server.js           # Express + WebSocket server
 ├── contracts/              # Solidity + Hardhat
@@ -144,7 +144,7 @@ cd ../frontend && npm install
 **Backend** (`backend/.env`):
 ```env
 PORT=3001
-ANTHROPIC_API_KEY=sk-ant-...          # Get from console.anthropic.com
+GEMINI_API_KEY=AIzaSy...              # Get from https://aistudio.google.com/
 OG_CHAIN_RPC=https://evmrpc.0g.ai
 OG_CHAIN_ID=16600
 PRIVATE_KEY=0x...                      # Your funded wallet private key
@@ -219,13 +219,52 @@ Open `http://localhost:5173`
 
 ---
 
+## 🌍 Production Deployment
+
+### 1. GitHub Setup
+Push your code to a public GitHub repository:
+```bash
+git init
+git add .
+git commit -m "Initial commit for AlphaTrace production ready"
+git branch -M main
+git remote add origin https://github.com/yourusername/alphatrace.git
+git push -u origin main
+```
+
+### 2. Frontend (Vercel)
+1. Go to [Vercel](https://vercel.com/) and link your GitHub account.
+2. Import the `alphatrace` repository.
+3. Configure the **Framework Preset** as **Vite**.
+4. Set the **Root Directory** to `frontend`.
+5. Add the Environment Variable:
+   - `VITE_API_URL` = `https://your-render-backend-url.onrender.com`
+   - `VITE_WS_URL` = `wss://your-render-backend-url.onrender.com/ws`
+6. Click **Deploy**. Vercel will use `vercel.json` for SPA routing rules.
+
+### 3. Backend (Render)
+Since the backend uses long-polling WebSockets and a Node.js `setInterval` loop, it must be deployed as a Web Service.
+1. Go to [Render.com](https://render.com/) and create a **New Web Service**.
+2. Connect your GitHub repository.
+3. Render will auto-detect the `backend/render.yaml` configuration file.
+4. Add your secrets in the Render dashboard (Environment Variables section):
+   ```env
+   GEMINI_API_KEY=your_real_gemini_key
+   PRIVATE_KEY=your_funded_testnet_wallet_key
+   COINGECKO_API_KEY=your_coingecko_api_key (optional)
+   FRONTEND_URL=https://your-vercel-frontend-url.vercel.app
+   ```
+5. Deploy. Render will execute `node server.js` to run the agent loop permanently.
+
+---
+
 ## 🎯 Demo Flow (3 minutes for judges)
 
 **1. Open the dashboard** → See the beautiful dark UI with live agent status
 
 **2. Click "Trigger Manually"** → Watch the agent:
    - Fetch real prices from CoinGecko
-   - Call Claude AI for analysis  
+   - Call Gemini AI for analysis  
    - Store decision to 0G Storage
    - Record on 0G Chain
 
