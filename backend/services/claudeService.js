@@ -138,6 +138,8 @@ Respond with ONLY the raw JSON object — no other text.`.trim()
 
       if (attempt < 3) await new Promise((r) => setTimeout(r, waitMs))
     }
+  }
+  
   console.error(`[Gemini] Analysis completely failed after 3 attempts: ${lastError?.message}`)
   
   // Graceful fallback for demo purposes if rate limit hits hard
