@@ -8,7 +8,7 @@ License: MIT
 
 ## 🚀 Live Demo
 
-🔗 **Frontend:** https://your-vercel-link  
+🔗 **Frontend:** https://alphatrace-one.vercel.app/
 🔗 **Explorer Proof:** https://testnet.0g.ai/address/0x428B490C2fb0E3137AfB478adc7cF3B668209534
 
 ---
