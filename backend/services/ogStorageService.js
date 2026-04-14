@@ -76,9 +76,10 @@ async function storeDecision(decisionData) {
   }
 
   const tmpPath = writeTempFile(payload)
+  let zgFile = null
 
   try {
-    const zgFile = await ZgFile.fromFilePath(tmpPath)
+    zgFile = await ZgFile.fromFilePath(tmpPath)
     const [tree, treeErr] = await zgFile.merkleTree()
     if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`)
 
@@ -98,7 +99,12 @@ async function storeDecision(decisionData) {
     }
     throw err
   } finally {
-    try { fs.unlinkSync(tmpPath) } catch {/* ignore */}
+    try { if (zgFile && typeof zgFile.close === 'function') zgFile.close() } catch (e) {}
+
+    // Small delay ensures no file lock exists when unlinking
+    setTimeout(() => {
+      try { fs.unlinkSync(tmpPath) } catch (e) {}
+    }, 2000)
   }
 }
 
