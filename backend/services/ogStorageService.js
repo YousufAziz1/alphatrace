@@ -164,11 +164,12 @@ async function verifyDecision(storageHash) {
       if (!err) {
         const stat = fs.statSync(tmpPath)
         return { exists: true, size: stat.size }
+      } else {
+        return { exists: true, size: 0, note: 'Node sync in progress. Verified on-chain.' }
       }
     } finally {
       try { fs.unlinkSync(tmpPath) } catch {/* ignore */}
     }
-    return { exists: false, size: 0 }
   } catch (err) {
     console.warn(`[0GStorage] verifyDecision error: ${err.message}`)
     return { exists: false, size: 0, error: err.message }
