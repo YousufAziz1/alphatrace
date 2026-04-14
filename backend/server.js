@@ -33,9 +33,9 @@ const app = express()
 
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors({
-  origin: [FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173'],
+  origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true,
+  // credentials: true, // Not allowed with origin: '*'
 }))
 app.use(morgan('dev'))
 app.use(express.json())
