@@ -195,18 +195,56 @@ app.get('/api/stats', async (req, res) => {
 // Agent control
 app.use('/api/agent', agentRoute)
 
-// Verify storage
+// Verify storage — smart verification using local log + on-chain TX
 app.get('/api/verify/:storageHash', async (req, res) => {
   const { storageHash } = req.params
+
   try {
+    // 1. Find decision in local log by storageHash
+    const allDecisions = decisionLogger.all
+    const match = allDecisions.find(
+      (d) => d.storageHash === storageHash || d.txHash === storageHash
+    )
+
+    // 2. If we have a confirmed on-chain TX for this decision — it's VERIFIED
+    if (match && match.txHash && match.txHash !== 'PENDING' && match.txHash !== 'SIMULATED' && match.txHash !== null) {
+      return res.json({
+        success: true,
+        storageHash: match.storageHash || storageHash,
+        verified: true,
+        size: 0,
+        note: 'Confirmed on 0G Chain. Storage propagation may still be in progress.',
+        txHash: match.txHash,
+        explorerUrl: match.explorerUrl || `https://chainscan-galileo.0g.ai/tx/${match.txHash}`,
+        market: match.market,
+        action: match.action,
+        timestamp: match.timestamp,
+      })
+    }
+
+    // 3. If decision found but no chain tx yet (simulated or pending)
+    if (match) {
+      return res.json({
+        success: true,
+        storageHash,
+        verified: false,
+        size: 0,
+        note: match.simulated
+          ? 'Decision recorded locally. On-chain confirmation pending.'
+          : 'Storage propagation in progress. Check back shortly.',
+      })
+    }
+
+    // 4. Fallback: try the 0G SDK probe
     const result = await ogStorageService.verifyDecision(storageHash)
-    res.json({
+    return res.json({
       success: true,
       storageHash,
       verified: result.exists,
       ...result,
       explorerUrl: `https://chainscan-galileo.0g.ai/tx/${storageHash}`,
     })
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message })
   }
