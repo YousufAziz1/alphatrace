@@ -48,6 +48,10 @@ export default function Header({ wsConnected }) {
             </span>
           </div>
 
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
+             <span className="text-xs font-bold tracking-wide">✅ On-Chain Verified AI</span>
+          </div>
+
           {/* 0G Explorer */}
           <a
             href={explorerContractUrl}
