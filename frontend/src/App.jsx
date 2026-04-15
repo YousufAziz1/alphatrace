@@ -10,7 +10,8 @@ import LiveTicker from './components/LiveTicker'
 import { useDecisions } from './hooks/useDecisions'
 import { useAgentStatus } from './hooks/useAgentStatus'
 import { connectWallet, recordDecisionOnChain } from './utils/contract'
-import { triggerWalletAgent, logExternalTx } from './utils/api'
+import { logExternalTx, getMarkets } from './utils/api'
+import { analyzeMarketFrontend } from './utils/geminiClient'
 
 export default function App() {
   const {
@@ -58,36 +59,64 @@ export default function App() {
   const [walletStatus, setWalletStatus]         = useState(null) // { type: 'success'|'error'|'info', msg: '' }
 
   const handleTriggerWallet = async () => {
-    // 🔒 Duplicate protection — ignore if already processing
+    // 🔒 Duplicate protection
     if (!isWalletConnected || walletTriggering) return
-    
+
     setWalletStatus(null)
     setWalletTriggering(true)
-    
+
     try {
-      // Step 0: Wake up backend (Render free tier cold start)
-      setWalletStatus({ type: 'info', msg: '⚡ Waking up server... (this takes ~20-30s on first run)' })
-      // Step 1: AI analysis on backend
-      const { decision } = await triggerWalletAgent()
-      setWalletStatus({ type: 'info', msg: '🦊 Waiting for MetaMask signature...' })
+      // Step 1: Fetch live ETH price from backend markets endpoint
+      setWalletStatus({ type: 'info', msg: '📊 Fetching live market data...' })
+      let ethPrice = 2400, rsi = 50, trend = 'NEUTRAL', change24h = 0
+      try {
+        const mktResp = await getMarkets()
+        const eth = (mktResp.markets || []).find(m => m.symbol === 'ETH/USDC')
+        if (eth) { ethPrice = eth.price; rsi = eth.rsi || 50; trend = eth.trend || 'NEUTRAL'; change24h = eth.change24h || 0 }
+      } catch { /* use defaults */ }
+
+      // Step 2: Call Gemini DIRECTLY from browser (no Render cold start!)
+      setWalletStatus({ type: 'info', msg: '🧠 AI is analyzing ETH/USDC...' })
+      const aiDecision = await analyzeMarketFrontend(ethPrice, rsi, trend, change24h)
+
+      // Build decision object
+      const decision = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        market: 'ETH/USDC',
+        action: aiDecision.action,
+        confidence: aiDecision.confidence,
+        reasoning: aiDecision.reasoning,
+        shortReasoning: aiDecision.shortReasoning,
+        indicators: aiDecision.indicators || {},
+        entryPrice: ethPrice,
+        targetPrice: aiDecision.targetPrice || null,
+        stopLoss: aiDecision.stopLoss || null,
+        riskScore: aiDecision.riskScore || 5,
+        timeHorizon: aiDecision.timeHorizon || 'SHORT',
+        storageHash: `wallet-${Date.now()}`,
+        simulated: false,
+      }
+
+      // Step 3: MetaMask sign popup
+      setWalletStatus({ type: 'info', msg: `🦊 ${aiDecision.action} signal ready! Waiting for MetaMask signature...` })
       const txHash = await recordDecisionOnChain(decision.market, decision.action, decision.storageHash)
-      
-      // Step 3: Log to backend & broadcast to feed
-      setWalletStatus({ type: 'info', msg: '📡 Confirming on-chain...' })
+
+      // Step 4: Log to backend DB and broadcast to feed
+      setWalletStatus({ type: 'info', msg: '📡 Logging on-chain decision...' })
       await logExternalTx(decision, txHash)
-      
-      setWalletStatus({ type: 'success', msg: `✅ On-chain! TX: ${txHash.slice(0,10)}...${txHash.slice(-6)}` })
+
+      setWalletStatus({ type: 'success', msg: `✅ On-chain! ${aiDecision.action} @ $${ethPrice.toFixed(2)} | TX: ${txHash.slice(0,10)}...${txHash.slice(-6)}` })
     } catch (err) {
-      // Clean user-friendly error — NO freeze, NO broken state
       const msg = err.message || 'Unknown error'
       if (msg.includes('rejected') || msg.includes('denied')) {
         setWalletStatus({ type: 'error', msg: '❌ Transaction rejected by user.' })
       } else if (msg.includes('insufficient')) {
-        setWalletStatus({ type: 'error', msg: '❌ Insufficient A0GI gas. Get testnet tokens from 0G faucet.' })
-      } else if (msg.includes('network') || msg.includes('Network')) {
-        setWalletStatus({ type: 'error', msg: '❌ Network error. Check MetaMask is on 0G Newton Testnet.' })
+        setWalletStatus({ type: 'error', msg: '❌ Insufficient A0GI gas. Get testnet tokens from the 0G faucet.' })
+      } else if (msg.includes('VITE_GEMINI_API_KEY')) {
+        setWalletStatus({ type: 'error', msg: '❌ Add VITE_GEMINI_API_KEY to Vercel environment variables.' })
       } else {
-        setWalletStatus({ type: 'error', msg: `❌ ${msg.slice(0, 100)}` })
+        setWalletStatus({ type: 'error', msg: `❌ ${msg.slice(0, 120)}` })
       }
     } finally {
       setWalletTriggering(false)
