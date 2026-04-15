@@ -6,7 +6,7 @@ const WS_URL   = import.meta.env.VITE_WS_URL  || 'ws://localhost:3001/ws'
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
-  timeout: 15000,
+  timeout: 60000, // 60 seconds (AI inference + 0G Storage can take time)
 })
 
 // ── Decisions ───────────────────────────────────────────────────────────────
