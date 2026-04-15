@@ -7,16 +7,16 @@ const ABI = [
 ]
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '0x428B490C2fb0E3137AfB478adc7cF3B668209534'
-const CHAIN_ID = 16602 // 0G Newton Testnet
-const CHAIN_ID_HEX = '0x40DA'  // 16602 in hex
-const RPC_URL = 'https://evmrpc-testnet.0g.ai'
+const CHAIN_ID     = 16600               // 0G Galileo Testnet (matches user wallet)
+const CHAIN_ID_HEX = '0x40D8'            // 16600 in hex
+const RPC_URL      = 'https://evmrpc-testnet.0g.ai'
 
 // ── Network helpers ────────────────────────────────────────────────────────────
 
 const NETWORK_CONFIG = {
   chainId: CHAIN_ID_HEX,
-  chainName: '0G Newton Testnet',
-  rpcUrls: [RPC_URL],
+  chainName: '0G-Galileo-Testnet',
+  rpcUrls: ['https://evmrpc-testnet.0g.ai'],
   nativeCurrency: { name: '0G', symbol: 'A0GI', decimals: 18 },
   blockExplorerUrls: ['https://chainscan-galileo.0g.ai'],
 }

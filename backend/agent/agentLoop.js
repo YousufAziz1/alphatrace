@@ -268,15 +268,18 @@ async function runWalletAnalysis() {
     simulated: false,
   }
 
-  // 5. Try 0G Storage — if it fails, use local hash as fallback (don't block MetaMask tx)
+  // 5. Try 0G Storage with 12s hard timeout — fallback if fails (don't block MetaMask tx)
   try {
-    const { storageHash } = await ogStorageService.storeDecision(cleanDecision)
+    const storeWithTimeout = Promise.race([
+      ogStorageService.storeDecision(cleanDecision),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Storage timeout')), 12000))
+    ])
+    const { storageHash } = await storeWithTimeout
     cleanDecision.storageHash = storageHash
     console.log(`[Wallet Agent] Stored on 0G. Hash: ${storageHash}`)
   } catch (storeErr) {
-    // Fallback: use decision ID as storage reference so chain tx can still proceed
     cleanDecision.storageHash = `local-${decisionId}`
-    console.warn(`[Wallet Agent] 0G Storage failed (non-blocking): ${storeErr.message}`)
+    console.warn(`[Wallet Agent] 0G Storage skipped (non-blocking): ${storeErr.message}`)
   }
 
   console.log(`[Wallet Agent] Ready for MetaMask sign: ${cleanDecision.action} on ${cleanDecision.market}`)
