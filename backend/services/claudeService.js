@@ -12,7 +12,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
-const MODEL_NAME = 'gemini-3-flash-preview'
+const MODEL_NAME = 'gemini-2.0-flash'  // Valid free-tier model (was: gemini-3-flash-preview — doesn't exist!)
 
 // ── System instruction ──────────────────────────────────────────────────────
 const SYSTEM_INSTRUCTION = `You are AlphaTrace, a DeFi trading agent. Respond ONLY with a valid JSON object — no markdown, no fences, no extra text.

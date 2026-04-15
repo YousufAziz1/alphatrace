@@ -60,9 +60,13 @@ const walletApi = axios.create({
 })
 
 export const triggerWalletAgent = async () => {
-  // Ping backend first to wake up Render from sleep (fire-and-forget)
-  try { await api.get('/health', { timeout: 5000 }) } catch {/* ignore */}
-  
+  // Wake Render from cold sleep (free tier sleeps after 15min).
+  // Health ping waits up to 55s — after this, main call only needs ~10s for Gemini.
+  try {
+    await api.get('/health', { timeout: 55000 })
+    console.log('[API] Backend awake — proceeding with AI analysis...')
+  } catch { /* ignore — continue regardless */ }
+
   const { data } = await walletApi.post('/agent/trigger-wallet')
   return data
 }

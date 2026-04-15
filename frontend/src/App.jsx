@@ -65,11 +65,10 @@ export default function App() {
     setWalletTriggering(true)
     
     try {
+      // Step 0: Wake up backend (Render free tier cold start)
+      setWalletStatus({ type: 'info', msg: '⚡ Waking up server... (this takes ~20-30s on first run)' })
       // Step 1: AI analysis on backend
-      setWalletStatus({ type: 'info', msg: '🧠 AI is analyzing market...' })
       const { decision } = await triggerWalletAgent()
-      
-      // Step 2: MetaMask sign popup
       setWalletStatus({ type: 'info', msg: '🦊 Waiting for MetaMask signature...' })
       const txHash = await recordDecisionOnChain(decision.market, decision.action, decision.storageHash)
       
