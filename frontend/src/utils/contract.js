@@ -13,37 +13,29 @@ const RPC_URL      = 'https://evmrpc-testnet.0g.ai'
 
 // ── Network helpers ────────────────────────────────────────────────────────────
 
-const NETWORK_CONFIG = {
-  chainId: CHAIN_ID_HEX,
-  chainName: '0G-Galileo-Testnet',
-  rpcUrls: ['https://evmrpc-testnet.0g.ai'],
-  nativeCurrency: { name: '0G', symbol: 'A0GI', decimals: 18 },
-  blockExplorerUrls: ['https://chainscan-galileo.0g.ai'],
-}
+// Known 0G network chainIds (Galileo, Newton variants)
+const OG_KNOWN_CHAINS = new Set(['0x40d8', '0x40da', '0x40dc', '0x3e9', '0x3ea'])
 
 async function ensureCorrectNetwork() {
-  const currentChainId = await window.ethereum.request({ method: 'eth_chainId' })
-  if (currentChainId.toLowerCase() === CHAIN_ID_HEX.toLowerCase()) return // already correct
+  const currentChainId = (await window.ethereum.request({ method: 'eth_chainId' })).toLowerCase()
+  
+  if (OG_KNOWN_CHAINS.has(currentChainId)) {
+    console.log(`[Web3] Network OK: chainId ${currentChainId} (0G network)`)
+    return // Already on a 0G network — proceed!
+  }
 
-  console.log(`[Web3] Switching from ${currentChainId} to ${CHAIN_ID_HEX} (0G Newton Testnet)...`)
+  console.log(`[Web3] Trying to switch to 0G Galileo Testnet (0x40D8)...`)
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: CHAIN_ID_HEX }],
+      params: [{ chainId: '0x40D8' }],
     })
   } catch (switchError) {
-    // Error code 4902 = chain not added to MetaMask yet
-    if (switchError.code === 4902 || switchError.code === -32603) {
-      console.log('[Web3] Network not found — adding 0G Newton Testnet to MetaMask...')
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [NETWORK_CONFIG],
-      })
-    } else if (switchError.code === 4001) {
-      throw new Error('User rejected network switch. Please switch to 0G Newton Testnet manually.')
-    } else {
-      throw new Error(`Could not switch network: ${switchError.message}`)
+    if (switchError.code === 4001) {
+      throw new Error('Please switch to 0G Galileo Testnet in your wallet to continue.')
     }
+    // If switch fails (e.g. not added), warn but don't block — let user try anyway
+    console.warn('[Web3] Could not auto-switch network:', switchError.message)
   }
 }
 
