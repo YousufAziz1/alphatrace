@@ -226,11 +226,87 @@ function startAgent() {
   runAgentCycle().catch((err) => console.error('[Agent] Start cycle error:', err.message))
 }
 
+// ── Wallet Manual Mode Methods ───────────────────────────────────────────────
+
+/**
+ * Runs the AI analysis and stores to 0G Storage to get a hash, but does NOT execute on EVM chain.
+ * This is used for the Wallet Mode where the user pays gas and signs via Metamask.
+ */
+async function runWalletAnalysis() {
+  console.log('[Wallet Agent] Requesting manual analysis for user...')
+  
+  // 1. Target market selection
+  const targetMarket = 'ETH/USDC' // Alternatively, select dynamically
+  console.log(`[Wallet Agent] Analyzing market: ${targetMarket}`)
+
+  // 2. Market Data
+  const mktData = await marketDataService.fetchMarketData()
+  const assetData = mktData.find((m) => m.symbol === 'ETH') || { price: 2500 }
+
+  // 3. AI Analysis
+  const jsonDecision = await claudeService.analyzeMarket(targetMarket, mktData)
+  
+  // 4. Validate & Process
+  const decisionId = uuidv4()
+  const cleanDecision = {
+    id: decisionId,
+    timestamp: new Date().toISOString(),
+    market: jsonDecision.market || targetMarket,
+    action: jsonDecision.action,
+    confidence: jsonDecision.confidence,
+    reasoning: jsonDecision.reasoning,
+    shortReasoning: jsonDecision.shortReasoning,
+    indicators: jsonDecision.indicators || {},
+    entryPrice: assetData.price,
+    targetPrice: jsonDecision.targetPrice || null,
+    stopLoss: jsonDecision.stopLoss || null,
+    riskScore: jsonDecision.riskScore || 5,
+    timeHorizon: jsonDecision.timeHorizon || '12h',
+    simulated: true,
+  }
+
+  try {
+    // 5. Store cleanly on 0G Data Network (Off-chain) to get the storage hash
+    const { storageHash } = await ogStorageService.storeDecision(cleanDecision)
+    cleanDecision.storageHash = storageHash
+    cleanDecision.simulated = false
+    console.log(`[Wallet Agent] Analysis complete. Returning for Metamask tx: ${cleanDecision.action} on ${cleanDecision.market}`)
+    return cleanDecision
+  } catch (storeErr) {
+    console.error('[Wallet Agent] Storage error:', storeErr.message)
+    throw new Error('Could not upload to 0G Storage network. Try again.')
+  }
+}
+
+/**
+ * Saves a decision to local DB and broadcasts it after the user confirms the Metamask TX.
+ */
+function logExternalDecision(decision, txHash) {
+  decision.txHash = txHash
+  decision.simulated = false
+  decision.explorerUrl = `https://chainscan-galileo.0g.ai/tx/${txHash}`
+  
+  // Update state
+  agentState.totalDecisions++
+  agentState.cycleCount++
+  agentState.lastRunTime = new Date()
+  
+  // Save locally
+  decisionLogger.add(decision)
+  console.log(`[Wallet Agent] Logged manual MetaTask execution — Action: ${decision.action} | Tx: ${txHash}`)
+
+  // Broadcast
+  broadcast('NEW_DECISION', decision)
+  broadcast('AGENT_STATUS', { ...agentState })
+}
+
 module.exports = {
   runAgentCycle,
   startAgentLoop,
   stopAgent,
   startAgent,
+  runWalletAnalysis,
+  logExternalDecision,
   agentState,
   setBroadcast,
 }

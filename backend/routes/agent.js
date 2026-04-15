@@ -7,7 +7,7 @@
 
 const express = require('express')
 const router = express.Router()
-const { runAgentCycle, agentState, stopAgent, startAgent } = require('../agent/agentLoop')
+const { runAgentCycle, agentState, stopAgent, startAgent, runWalletAnalysis, logExternalDecision } = require('../agent/agentLoop')
 
 // GET /api/agent/status
 router.get('/status', (req, res) => {
@@ -50,6 +50,39 @@ router.post('/stop', (req, res) => {
 router.post('/start', (req, res) => {
   startAgent()
   res.json({ success: true, message: 'Agent started. Autonomous loop resumed.', status: agentState })
+})
+
+// ── Wallet Manual Mode Endpoints ──────────────────────────────────────────────
+
+// POST /api/agent/trigger-wallet — runs analysis but does not execute on chain
+router.post('/trigger-wallet', async (req, res) => {
+  try {
+    const decision = await runWalletAnalysis()
+    res.json({
+      success: true,
+      decision,
+      message: 'Analysis complete. Awaiting user wallet signature.',
+    })
+  } catch (err) {
+    console.error('[AgentRoute /trigger-wallet] Error:', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+// POST /api/agent/log-wallet-tx — records the external UI transaction
+router.post('/log-wallet-tx', (req, res) => {
+  const { decision, txHash } = req.body
+  if (!decision || !txHash) {
+    return res.status(400).json({ success: false, error: 'Missing decision or txHash' })
+  }
+  
+  try {
+    logExternalDecision(decision, txHash)
+    res.json({ success: true, message: 'User transaction successfully logged.' })
+  } catch (err) {
+    console.error('[AgentRoute /log-wallet-tx] Error:', err.message)
+    res.status(500).json({ success: false, error: err.message })
+  }
 })
 
 module.exports = router

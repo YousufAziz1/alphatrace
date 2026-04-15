@@ -53,6 +53,16 @@ export const startAgent = async () => {
   return data
 }
 
+export const triggerWalletAgent = async () => {
+  const { data } = await api.post('/agent/trigger-wallet')
+  return data
+}
+
+export const logExternalTx = async (decision, txHash) => {
+  const { data } = await api.post('/agent/log-wallet-tx', { decision, txHash })
+  return data
+}
+
 // ── Storage verification ─────────────────────────────────────────────────────
 export const verifyStorage = async (storageHash) => {
   const { data } = await api.get(`/verify/${encodeURIComponent(storageHash)}`)
