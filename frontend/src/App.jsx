@@ -76,7 +76,7 @@ export default function App() {
       } catch { /* use defaults */ }
 
       // Step 2: Call Gemini DIRECTLY from browser (no Render cold start!)
-      setWalletStatus({ type: 'info', msg: '🧠 AI is analyzing ETH/USDC...' })
+      setWalletStatus({ type: 'info', msg: '🧠 AI is analyzing ETH/USDC... (if rate limited, auto-retries in 22s)' })
       const aiDecision = await analyzeMarketFrontend(ethPrice, rsi, trend, change24h)
 
       // Build decision object
