@@ -53,8 +53,17 @@ export const startAgent = async () => {
   return data
 }
 
+// Separate axios instance with longer timeout for AI-heavy wallet calls
+const walletApi = axios.create({
+  baseURL: `${API_BASE}/api`,
+  timeout: 90000, // 90 seconds: Render cold start (~30s) + Gemini (~15s)
+})
+
 export const triggerWalletAgent = async () => {
-  const { data } = await api.post('/agent/trigger-wallet')
+  // Ping backend first to wake up Render from sleep (fire-and-forget)
+  try { await api.get('/health', { timeout: 5000 }) } catch {/* ignore */}
+  
+  const { data } = await walletApi.post('/agent/trigger-wallet')
   return data
 }
 
