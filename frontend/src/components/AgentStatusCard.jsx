@@ -9,7 +9,7 @@ const STATUS_CONFIG = {
   STOPPED: { color: 'text-orange-400',bg: 'bg-orange-500/10 border-orange-500/25',dot: 'bg-orange-400',label: '⏹ STOPPED' },
 }
 
-export default function AgentStatusCard({ agentStatus, triggering, stopping, starting, triggerMessage, onTrigger, onStop, onStart, isWalletConnected, onTriggerWallet, walletTriggering }) {
+export default function AgentStatusCard({ agentStatus, triggering, stopping, starting, triggerMessage, onTrigger, onStop, onStart, isWalletConnected, onTriggerWallet, walletTriggering, walletStatus }) {
   const cfg = STATUS_CONFIG[agentStatus?.status] || STATUS_CONFIG.IDLE
   const markets = ['ETH/USDC', 'BTC/USDC']
   const activeMarkets = agentStatus?.currentMarkets || []
@@ -90,6 +90,17 @@ export default function AgentStatusCard({ agentStatus, triggering, stopping, sta
       {triggerMessage && (
         <div className="mb-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <p className="text-xs text-blue-300">{triggerMessage}</p>
+        </div>
+      )}
+
+      {/* Wallet TX status — shown only in Wallet Mode */}
+      {isWalletConnected && walletStatus && (
+        <div className={`mb-3 p-2.5 rounded-lg border text-xs font-medium flex items-center gap-2 ${
+          walletStatus.type === 'success' ? 'bg-green-500/10 border-green-500/25 text-green-400' :
+          walletStatus.type === 'error'   ? 'bg-red-500/10 border-red-500/25 text-red-400' :
+                                            'bg-blue-500/10 border-blue-500/25 text-blue-300 animate-pulse'
+        }`}>
+          {walletStatus.msg}
         </div>
       )}
 

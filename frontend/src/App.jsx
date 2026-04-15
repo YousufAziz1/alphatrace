@@ -50,28 +50,46 @@ export default function App() {
         await stop()
       }
     } catch (err) {
-      alert(`Wallet Connection Error: ${err.message}`)
+      setWalletStatus({ type: 'error', msg: err.message })
     }
   }
 
   const [walletTriggering, setWalletTriggering] = useState(false)
-  
+  const [walletStatus, setWalletStatus]         = useState(null) // { type: 'success'|'error'|'info', msg: '' }
+
   const handleTriggerWallet = async () => {
-    if (!isWalletConnected) return
+    // 🔒 Duplicate protection — ignore if already processing
+    if (!isWalletConnected || walletTriggering) return
+    
+    setWalletStatus(null)
+    setWalletTriggering(true)
+    
     try {
-      setWalletTriggering(true)
-      // 1. Ask Server to do analysis and store to 0G offchain data network
+      // Step 1: AI analysis on backend
+      setWalletStatus({ type: 'info', msg: '🧠 AI is analyzing market...' })
       const { decision } = await triggerWalletAgent()
       
-      // 2. Ask User to Sign TX
+      // Step 2: MetaMask sign popup
+      setWalletStatus({ type: 'info', msg: '🦊 Waiting for MetaMask signature...' })
       const txHash = await recordDecisionOnChain(decision.market, decision.action, decision.storageHash)
       
-      // 3. Log External TX to DB and trigger feed update
+      // Step 3: Log to backend & broadcast to feed
+      setWalletStatus({ type: 'info', msg: '📡 Confirming on-chain...' })
       await logExternalTx(decision, txHash)
       
-      alert('Transaction Submitted & Logged Successfully!')
-    } catch(err) {
-      alert(`Transaction Failed: ${err.message}`)
+      setWalletStatus({ type: 'success', msg: `✅ On-chain! TX: ${txHash.slice(0,10)}...${txHash.slice(-6)}` })
+    } catch (err) {
+      // Clean user-friendly error — NO freeze, NO broken state
+      const msg = err.message || 'Unknown error'
+      if (msg.includes('rejected') || msg.includes('denied')) {
+        setWalletStatus({ type: 'error', msg: '❌ Transaction rejected by user.' })
+      } else if (msg.includes('insufficient')) {
+        setWalletStatus({ type: 'error', msg: '❌ Insufficient A0GI gas. Get testnet tokens from 0G faucet.' })
+      } else if (msg.includes('network') || msg.includes('Network')) {
+        setWalletStatus({ type: 'error', msg: '❌ Network error. Check MetaMask is on 0G Newton Testnet.' })
+      } else {
+        setWalletStatus({ type: 'error', msg: `❌ ${msg.slice(0, 100)}` })
+      }
     } finally {
       setWalletTriggering(false)
     }
@@ -196,6 +214,7 @@ export default function App() {
               isWalletConnected={isWalletConnected}
               onTriggerWallet={handleTriggerWallet}
               walletTriggering={walletTriggering}
+              walletStatus={walletStatus}
             />
 
             {/* Market selector */}
