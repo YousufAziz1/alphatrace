@@ -81,6 +81,27 @@ export default function App() {
           </a>
         </div>
 
+        {/* Wallet Mode Banner */}
+        <div className="animate-fade-up flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#111118] border border-gray-800 p-5 rounded-2xl relative overflow-hidden group" style={{ animationDelay: '20ms' }}>
+          <div>
+            <h3 className="text-gray-100 font-bold text-lg mb-1 flex items-center gap-2">
+              <span className="text-xl">🦊</span> Web3 Wallet Integration
+            </h3>
+            <p className="text-sm text-gray-400 font-medium max-w-3xl">
+              Users can optionally connect their wallet to execute and verify AI decisions directly on-chain (gas fees apply on testnet).
+            </p>
+          </div>
+          
+          <button
+            className="shrink-0 flex items-center gap-3 px-5 py-2.5 bg-gray-800 text-gray-300 font-semibold text-sm rounded-xl border border-gray-700 hover:bg-gray-700 hover:text-white transition-all duration-300"
+          >
+            Switch to Wallet Mode (On-chain Execution)
+            <div className="w-8 h-4 bg-gray-900 rounded-full relative shadow-inner border border-gray-700">
+              <div className="absolute left-0.5 top-[1px] w-3 h-3 bg-gray-500 rounded-full transition-transform" />
+            </div>
+          </button>
+        </div>
+
         {/* Stats bar */}
         <div className="animate-fade-up" style={{ animationDelay: '40ms' }}>
           <StatsBar stats={stats} />
