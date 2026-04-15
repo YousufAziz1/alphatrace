@@ -235,47 +235,52 @@ function startAgent() {
 async function runWalletAnalysis() {
   console.log('[Wallet Agent] Requesting manual analysis for user...')
   
-  // 1. Target market selection
-  const targetMarket = 'ETH/USDC' // Alternatively, select dynamically
-  console.log(`[Wallet Agent] Analyzing market: ${targetMarket}`)
-
-  // 2. Market Data
+  // 1. Fetch market data
   const mktData = await marketDataService.fetchMarketData()
-  const assetData = mktData.find((m) => m.symbol === 'ETH') || { price: 2500 }
-
-  // 3. AI Analysis
-  const jsonDecision = await claudeService.analyzeMarket(targetMarket, mktData)
   
-  // 4. Validate & Process
+  // 2. Pick ETH as target asset
+  const assetData = mktData.find((m) => m.symbol === 'ETH') || mktData[0] || { price: 2500, symbol: 'ETH', rsi: 50, trend: 'NEUTRAL', change24h: 0 }
+  const targetMarket = 'ETH/USDC'
+  assetData.symbol = targetMarket  // normalize for Gemini prompt
+  
+  console.log(`[Wallet Agent] Analyzing: ${targetMarket} @ $${assetData.price}`)
+
+  // 3. AI Analysis — pass individual asset object (correct signature)
+  const recentHistory = decisionLogger.all.slice(0, 5)
+  const jsonDecision = await claudeService.analyzeMarket(assetData, recentHistory)
+  
+  // 4. Build clean decision object
   const decisionId = uuidv4()
   const cleanDecision = {
     id: decisionId,
     timestamp: new Date().toISOString(),
-    market: jsonDecision.market || targetMarket,
+    market: targetMarket,
     action: jsonDecision.action,
     confidence: jsonDecision.confidence,
     reasoning: jsonDecision.reasoning,
     shortReasoning: jsonDecision.shortReasoning,
     indicators: jsonDecision.indicators || {},
-    entryPrice: assetData.price,
+    entryPrice: assetData.price || jsonDecision.entryPrice,
     targetPrice: jsonDecision.targetPrice || null,
     stopLoss: jsonDecision.stopLoss || null,
     riskScore: jsonDecision.riskScore || 5,
     timeHorizon: jsonDecision.timeHorizon || '12h',
-    simulated: true,
+    simulated: false,
   }
 
+  // 5. Try 0G Storage — if it fails, use local hash as fallback (don't block MetaMask tx)
   try {
-    // 5. Store cleanly on 0G Data Network (Off-chain) to get the storage hash
     const { storageHash } = await ogStorageService.storeDecision(cleanDecision)
     cleanDecision.storageHash = storageHash
-    cleanDecision.simulated = false
-    console.log(`[Wallet Agent] Analysis complete. Returning for Metamask tx: ${cleanDecision.action} on ${cleanDecision.market}`)
-    return cleanDecision
+    console.log(`[Wallet Agent] Stored on 0G. Hash: ${storageHash}`)
   } catch (storeErr) {
-    console.error('[Wallet Agent] Storage error:', storeErr.message)
-    throw new Error('Could not upload to 0G Storage network. Try again.')
+    // Fallback: use decision ID as storage reference so chain tx can still proceed
+    cleanDecision.storageHash = `local-${decisionId}`
+    console.warn(`[Wallet Agent] 0G Storage failed (non-blocking): ${storeErr.message}`)
   }
+
+  console.log(`[Wallet Agent] Ready for MetaMask sign: ${cleanDecision.action} on ${cleanDecision.market}`)
+  return cleanDecision
 }
 
 /**
