@@ -1,11 +1,9 @@
 // geminiClient.js — Direct Gemini API call from frontend for Wallet Mode
 // Bypasses Render backend entirely — instant AI response (~2-3s).
 
-// Frontend-dedicated Gemini key (separate from backend to avoid rate limits)
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-  || 'AIzaSyAlGtGE-wNYfWJ5VHcYEsvEOOOCY4L1KUU' // demo fallback key
+// Set VITE_GEMINI_API_KEY in Vercel → Settings → Environment Variables
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''
 
-// Build URL immediately after key is resolved
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`
 
 const SYSTEM_PROMPT = `You are AlphaTrace, a DeFi trading agent. Respond ONLY with a valid JSON object — no markdown, no fences, no extra text.
