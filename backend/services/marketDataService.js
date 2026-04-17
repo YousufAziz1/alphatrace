@@ -14,6 +14,8 @@ const API_KEY = process.env.COINGECKO_API_KEY
 const MARKET_MAP = {
   ethereum: { symbol: 'ETH/USDC', display: 'ETH' },
   bitcoin:  { symbol: 'BTC/USDC', display: 'BTC' },
+  solana:   { symbol: 'SOL/USDC', display: 'SOL' },
+  arbitrum: { symbol: 'ARB/USDC', display: 'ARB' },
 }
 
 // ── Cache ─────────────────────────────────────────────────────────────
@@ -152,7 +154,9 @@ async function fetchMarketData(markets = Object.keys(MARKET_MAP)) {
     console.log(`[MarketData] 🛡️ Returning fallback demo data to preserve app stability.`)
     const fallback = [
       { id: 'ethereum', symbol: 'ETH/USDC', display: 'ETH', price: 2384.87, change24h: 1.25, volume24h: 11000000000, high24h: 2450.0, low24h: 2300.0, marketCap: 280000000000, rsi: 55, trend: 'BULLISH', fetchedAt: new Date().toISOString() },
-      { id: 'bitcoin', symbol: 'BTC/USDC', display: 'BTC', price: 61204.55, change24h: -0.80, volume24h: 29000000000, high24h: 62500.0, low24h: 60000.0, marketCap: 1200000000000, rsi: 48, trend: 'NEUTRAL', fetchedAt: new Date().toISOString() }
+      { id: 'bitcoin', symbol: 'BTC/USDC', display: 'BTC', price: 61204.55, change24h: -0.80, volume24h: 29000000000, high24h: 62500.0, low24h: 60000.0, marketCap: 1200000000000, rsi: 48, trend: 'NEUTRAL', fetchedAt: new Date().toISOString() },
+      { id: 'solana', symbol: 'SOL/USDC', display: 'SOL', price: 145.20, change24h: -2.30, volume24h: 3200000000, high24h: 155.0, low24h: 140.0, marketCap: 65000000000, rsi: 40, trend: 'BEARISH', fetchedAt: new Date().toISOString() },
+      { id: 'arbitrum', symbol: 'ARB/USDC', display: 'ARB', price: 1.15, change24h: 2.10, volume24h: 450000000, high24h: 1.25, low24h: 1.05, marketCap: 3000000000, rsi: 60, trend: 'BULLISH', fetchedAt: new Date().toISOString() }
     ]
     cachedData = fallback
     cacheTs = Date.now()
