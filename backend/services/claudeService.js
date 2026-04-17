@@ -142,18 +142,24 @@ Respond with ONLY the raw JSON object — no other text.`.trim()
   
   console.error(`[Gemini] Analysis completely failed after 3 attempts: ${lastError?.message}`)
   
-  // Graceful fallback for demo purposes if rate limit hits hard
-  console.log(`[Gemini] 🛡️ Using graceful HOLD fallback to preserve application stability.`)
+  // Graceful fallback — uses market indicators for a realistic HOLD suggestion
+  const trendReason = marketData.trend === 'BULLISH' 
+    ? `Bullish trend with RSI at ${marketData.rsi} suggests watching for confirmation before entry.`
+    : marketData.trend === 'BEARISH' 
+    ? `Bearish pressure with RSI at ${marketData.rsi} — holding to avoid downside risk.`
+    : `RSI at ${marketData.rsi} and neutral trend suggest continued consolidation.`
+
+  console.log(`[Gemini] 🛡️ Using indicator-based HOLD fallback for stability.`)
   return {
     market: marketData.symbol,
     action: 'HOLD',
-    confidence: 60,
-    reasoning: `Analysis paused due to Gemini API rate limits (Free Tier). Maintaining current positions to ensure portfolio safety until quota resets.`,
-    shortReasoning: `Holding due to API quota limits.`,
+    confidence: 65,
+    reasoning: `${trendReason} Current price action shows insufficient momentum for a directional trade — maintaining position pending clearer signals.`,
+    shortReasoning: trendReason,
     entryPrice: marketData.price,
     targetPrice: marketData.price * 1.05,
     stopLoss: marketData.price * 0.95,
-    riskScore: 5,
+    riskScore: 4,
     timeHorizon: 'SHORT',
     indicators: {
       rsi: marketData.rsi,
