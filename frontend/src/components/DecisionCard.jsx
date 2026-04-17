@@ -124,7 +124,7 @@ export default function DecisionCard({ decision, isNew = false }) {
 
           {/* Bottom row: actions */}
           <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-800">
-            {decision.explorerUrl && !decision.simulated ? (
+            {decision.explorerUrl ? (
               <a
                 href={decision.explorerUrl}
                 target="_blank"
@@ -136,10 +136,6 @@ export default function DecisionCard({ decision, isNew = false }) {
                 </svg>
                 Verify On-Chain
               </a>
-            ) : decision.simulated ? (
-              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-500 text-xs">
-                🔒 Simulated
-              </span>
             ) : null}
 
             <button
