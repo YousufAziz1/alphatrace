@@ -9,7 +9,7 @@ const STATUS_CONFIG = {
   STOPPED: { color: 'text-orange-400',bg: 'bg-orange-500/10 border-orange-500/25',dot: 'bg-orange-400',label: '⏹ STOPPED' },
 }
 
-export default function AgentStatusCard({ agentStatus, triggering, stopping, starting, triggerMessage, onTrigger, onStop, onStart, isWalletConnected, onTriggerWallet, walletTriggering, walletStatus }) {
+export default function AgentStatusCard({ agentStatus, triggering, stopping, starting, triggerMessage, onTrigger, onStop, onStart }) {
   const cfg = STATUS_CONFIG[agentStatus?.status] || STATUS_CONFIG.IDLE
   const markets = ['ETH/USDC', 'BTC/USDC']
   const activeMarkets = agentStatus?.currentMarkets || []
@@ -93,16 +93,6 @@ export default function AgentStatusCard({ agentStatus, triggering, stopping, sta
         </div>
       )}
 
-      {/* Wallet TX status — shown only in Wallet Mode */}
-      {isWalletConnected && walletStatus && (
-        <div className={`mb-3 p-2.5 rounded-lg border text-xs font-medium flex items-center gap-2 ${
-          walletStatus.type === 'success' ? 'bg-green-500/10 border-green-500/25 text-green-400' :
-          walletStatus.type === 'error'   ? 'bg-red-500/10 border-red-500/25 text-red-400' :
-                                            'bg-blue-500/10 border-blue-500/25 text-blue-300 animate-pulse'
-        }`}>
-          {walletStatus.msg}
-        </div>
-      )}
 
       {/* Start / Stop / Trigger buttons */}
       <div className="flex gap-2">
@@ -139,53 +129,24 @@ export default function AgentStatusCard({ agentStatus, triggering, stopping, sta
         )}
 
         {/* Trigger manually button */}
-        {isWalletConnected ? (
-          <button
-            onClick={onTriggerWallet}
-            disabled={walletTriggering}
-            className="flex-1 py-2.5 px-4 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Fetch AI decision and sign on-chain via MetaMask"
-          >
-            {walletTriggering ? (
-              <>
-                <svg className="w-4 h-4 animate-spin text-yellow-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-                Waiting for signature...
-              </>
-            ) : (
-              <>
-                <span className="text-xl leading-none">🦊</span>
-                Trigger & Sign (Metamask)
-              </>
-            )}
-          </button>
-        ) : (
-          <button
-            onClick={onTrigger}
-            disabled={agentStatus?.isRunning || triggering || isStopped}
-            className="btn-primary flex-1 py-2.5 px-4 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2"
-            title={isStopped ? 'Start the agent first' : 'Run one analysis cycle now'}
-          >
-            {agentStatus?.isRunning || triggering ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-                Running...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                {isStopped ? 'Agent Stopped' : 'Trigger Manually'}
-              </>
-            )}
-          </button>
-        )}
+        <button
+          onClick={onTrigger}
+          disabled={agentStatus?.isRunning || triggering || isStopped}
+          className="btn-primary flex-1 py-2.5 px-4 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2"
+          title={isStopped ? 'Start the agent first' : 'Run one analysis cycle now'}
+        >
+          {agentStatus?.isRunning || triggering ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              Running...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              {isStopped ? 'Agent Stopped' : 'Trigger Manually'}
+            </>
+          )}
+        </button>
       </div>
     </div>
   )
