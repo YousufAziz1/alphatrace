@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@0glabs/0g-ts-sdk": "^0.2.1",
+    "@anthropic-ai/sdk": "^0.36.0",
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.7.7",
     "cors": "^2.8.5",

@@ -10,7 +10,7 @@ const cron = require('node-cron')
 const { v4: uuidv4 } = require('uuid')
 
 const marketDataService = require('../services/marketDataService')
-const claudeService = require('../services/claudeService')
+const aiService = require('../services/aiService')
 const ogStorageService = require('../services/ogStorageService')
 const ogChainService = require('../services/ogChainService')
 const decisionLogger = require('./decisionLogger')
@@ -87,9 +87,9 @@ async function runAgentCycle() {
       let chainResult = null
 
       try {
-        // ── Claude analysis ─────────────────────────────────────
-        console.log(`[Agent] Analyzing ${marketData.symbol} with Claude...`)
-        decision = await claudeService.analyzeMarket(marketData, historicalDecisions)
+        // ── AI analysis ─────────────────────────────────────
+        console.log(`[Agent] Analyzing ${marketData.symbol}...`)
+        decision = await aiService.analyzeMarket(marketData, historicalDecisions)
 
         // Enrich with metadata
         decision.id = uuidv4()
@@ -251,7 +251,7 @@ async function runWalletAnalysis() {
 
   // 3. AI Analysis (only step that matters — no storage, no chain call)
   const recentHistory = decisionLogger.all.slice(0, 5)
-  const jsonDecision  = await claudeService.analyzeMarket(assetData, recentHistory)
+  const jsonDecision  = await aiService.analyzeMarket(assetData, recentHistory)
 
   // 4. Build clean decision (storageHash will be filled after MetaMask signs)
   const decisionId = uuidv4()

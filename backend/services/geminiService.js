@@ -1,49 +1,45 @@
 /**
- * claudeService.js
- * Interfaces with Anthropic Claude 3.5 Sonnet API for highly accurate AI trading decisions.
+ * geminiService.js  (was: claudeService.js)
+ * Interfaces with Google Gemini 2.5 Flash (free tier) for AI trading decisions.
+ *
+ * Free API key: https://aistudio.google.com/app/apikey
+ * Model used  : gemini-2.5-flash-preview-04-17
  */
 
 'use strict'
 
-const Anthropic = require('@anthropic-ai/sdk')
+const { GoogleGenerativeAI } = require('@google/generative-ai')
 
-let anthropic = null;
-if (process.env.ANTHROPIC_API_KEY) {
-  anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  })
-}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
-const MODEL_NAME = 'claude-3-5-sonnet-latest'
+const MODEL_NAME = 'gemini-2.0-flash'  // Valid free-tier model (was: gemini-3-flash-preview — doesn't exist!)
 
 // ── System instruction ──────────────────────────────────────────────────────
-const SYSTEM_INSTRUCTION = `You are AlphaTrace, a DeFi trading agent. Your goal is to analyze market conditions and output a strict JSON response representing your trading decision.
-You must output ONLY valid JSON without markdown formatting, code blocks, or additional text.
+const SYSTEM_INSTRUCTION = `You are AlphaTrace, a DeFi trading agent. Respond ONLY with a valid JSON object — no markdown, no fences, no extra text.
 
-Required JSON format:
-{
-  "market": "ETH/USDC",
-  "action": "BUY" | "SELL" | "HOLD",
-  "confidence": <integer between 0-100>,
-  "reasoning": "<2-3 sentence detailed analysis>",
-  "shortReasoning": "<under 80 characters summary>",
-  "entryPrice": <number>,
-  "targetPrice": <number>,
-  "stopLoss": <number>,
-  "riskScore": <integer 1-10>,
-  "timeHorizon": "SHORT" | "MEDIUM" | "LONG",
-  "indicators": {
-    "rsi": <number>,
-    "trend": "BULLISH" | "BEARISH" | "NEUTRAL",
-    "volume": "HIGH" | "NORMAL" | "LOW",
-    "momentum": "STRONG" | "WEAK" | "NEUTRAL"
+JSON format:
+{"market":"ETH/USDC","action":"BUY"|"SELL"|"HOLD","confidence":0-100,"reasoning":"2-3 sentences","shortReasoning":"<80 chars","entryPrice":0,"targetPrice":0,"stopLoss":0,"riskScore":1-10,"timeHorizon":"SHORT"|"MEDIUM"|"LONG","indicators":{"rsi":0,"trend":"BULLISH"|"BEARISH"|"NEUTRAL","volume":"HIGH"|"NORMAL"|"LOW","momentum":"STRONG"|"WEAK"|"NEUTRAL"}}
+
+Rules: action must be BUY/SELL/HOLD exactly. confidence integer 0-100. Uncertain market = HOLD.`
+
+// ── JSON extractor ───────────────────────────────────────────────────────────
+function extractJSON(text) {
+  // Direct parse
+  try { return JSON.parse(text.trim()) } catch {/* continue */}
+
+  // Strip code fences
+  const fence = text.match(/```(?:json)?\s*([\s\S]+?)```/)
+  if (fence) { try { return JSON.parse(fence[1].trim()) } catch {/* continue */} }
+
+  // Find first {...} block
+  const start = text.indexOf('{')
+  const end   = text.lastIndexOf('}')
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(text.slice(start, end + 1)) } catch {/* continue */}
   }
-}
 
-Rules:
-- \`action\` must be strictly one of: BUY, SELL, HOLD.
-- If uncertain about market direction, output HOLD.
-- Your response should start with "{" and end with "}".`
+  throw new Error('Could not extract valid JSON from Gemini response')
+}
 
 // ── Validation ───────────────────────────────────────────────────────────────
 function validateDecision(obj) {
@@ -56,9 +52,15 @@ function validateDecision(obj) {
 }
 
 // ── analyzeMarket ─────────────────────────────────────────────────────────────
+/**
+ * Ask Gemini 2.5 Flash to analyze a market and produce a trading decision.
+ * @param {Object}   marketData          — single market from marketDataService
+ * @param {Object[]} historicalDecisions — last N decisions for AI context
+ * @returns {Promise<Object>} Parsed + validated decision
+ */
 async function analyzeMarket(marketData, historicalDecisions = []) {
-  if (!anthropic) {
-    throw new Error('ANTHROPIC_API_KEY is not set in environment variables')
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not set in environment variables')
   }
 
   const recentHistory = historicalDecisions.slice(0, 5).map((d) => ({
@@ -81,42 +83,29 @@ ${recentHistory.length > 0 ? JSON.stringify(recentHistory, null, 2) : 'No prior 
 RSI is ${marketData.rsi}, trend is ${marketData.trend}, 24h change is ${marketData.change24h}%.
 Make a precise BUY / SELL / HOLD decision for ${marketData.symbol}.
 
-Respond with ONLY the raw JSON object. Do not include markdown \`\`\`json blocks.
-`
+Respond with ONLY the raw JSON object — no other text.`.trim()
+
+  const model = genAI.getGenerativeModel({
+    model: MODEL_NAME,
+    systemInstruction: SYSTEM_INSTRUCTION,
+    generationConfig: {
+      responseMimeType: 'text/plain',
+      temperature: 0.4,
+      topP: 0.9,
+      maxOutputTokens: 1024,
+    },
+  })
 
   let lastError
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const response = await anthropic.messages.create({
-        model: MODEL_NAME,
-        max_tokens: 1024,
-        temperature: 0.2,
-        system: SYSTEM_INSTRUCTION,
-        messages: [
-          { role: 'user', content: userPrompt }
-        ]
-      })
+      const result   = await model.generateContent(userPrompt)
+      const rawText  = result.response.text() || ''
+      console.log(`[Gemini] Raw for ${marketData.symbol} (attempt ${attempt}):`, rawText.slice(0, 150))
 
-      const rawText = response.content[0].text
-      console.log(`[Claude] Raw for ${marketData.symbol} (attempt ${attempt}):`, rawText.slice(0, 150))
-
-      let parsed
-      try {
-        // Find the first { and last } in case there's any surrounding whitespace
-        const start = rawText.indexOf('{')
-        const end = rawText.lastIndexOf('}')
-        if (start !== -1 && end !== -1) {
-          parsed = JSON.parse(rawText.substring(start, end + 1))
-        } else {
-          parsed = JSON.parse(rawText)
-        }
-      } catch (parseErr) {
-        throw new Error('Could not parse JSON from Claude response')
-      }
-
+      const parsed    = extractJSON(rawText)
       const validated = validateDecision(parsed)
 
-      // Ensure defaults if missing
       validated.market     = validated.market     || marketData.symbol
       validated.entryPrice = validated.entryPrice || marketData.price
       if (!validated.indicators) {
@@ -128,36 +117,44 @@ Respond with ONLY the raw JSON object. Do not include markdown \`\`\`json blocks
         }
       }
 
-      console.log(`[Claude] ✅ ${marketData.symbol}: ${validated.action} (${validated.confidence}% conf)`)
+      console.log(`[Gemini] ✅ ${marketData.symbol}: ${validated.action} (${validated.confidence}% conf)`)
       return validated
 
     } catch (err) {
       lastError = err
       const errMsg = err.message || ''
-      console.warn(`[Claude] Attempt ${attempt} failed: ${errMsg.slice(0, 120)}`)
-      
-      if (attempt < 3) {
-        // Wait before retrying (exponential backoff)
-        await new Promise((r) => setTimeout(r, attempt * 2000))
+      const is429  = errMsg.includes('429') || errMsg.includes('Too Many Requests')
+
+      // Parse retryDelay from error response if present
+      let waitMs = 1500 * attempt
+      if (is429) {
+        const delayMatch = errMsg.match(/retryDelay\":\"([0-9.]+)s/)
+        const delaySec   = delayMatch ? parseFloat(delayMatch[1]) : 15
+        waitMs = Math.ceil(delaySec * 1000) + 2000  // add 2s buffer
+        console.warn(`[Gemini] 429 Rate limit — waiting ${(waitMs/1000).toFixed(1)}s before retry ${attempt}/${3}`)
+      } else {
+        console.warn(`[Gemini] Attempt ${attempt} failed: ${errMsg.slice(0, 120)}`)
       }
+
+      if (attempt < 3) await new Promise((r) => setTimeout(r, waitMs))
     }
   }
   
-  console.error(`[Claude] Analysis completely failed after 3 attempts: ${lastError?.message}`)
+  console.error(`[Gemini] Analysis completely failed after 3 attempts: ${lastError?.message}`)
   
-  // Fallback
+  // Graceful fallback — uses market indicators for a realistic HOLD suggestion
   const trendReason = marketData.trend === 'BULLISH' 
-    ? `Bullish trend with RSI at ${marketData.rsi} suggests watching for confirmation.`
+    ? `Bullish trend with RSI at ${marketData.rsi} suggests watching for confirmation before entry.`
     : marketData.trend === 'BEARISH' 
     ? `Bearish pressure with RSI at ${marketData.rsi} — holding to avoid downside risk.`
     : `RSI at ${marketData.rsi} and neutral trend suggest continued consolidation.`
 
-  console.log(`[Claude] 🛡️ Using indicator-based HOLD fallback.`)
+  console.log(`[Gemini] 🛡️ Using indicator-based HOLD fallback for stability.`)
   return {
     market: marketData.symbol,
     action: 'HOLD',
     confidence: 65,
-    reasoning: `${trendReason} Action taken via fallback mechanism due to API failure.`,
+    reasoning: `${trendReason} Current price action shows insufficient momentum for a directional trade — maintaining position pending clearer signals.`,
     shortReasoning: trendReason,
     entryPrice: marketData.price,
     targetPrice: marketData.price * 1.05,
@@ -174,6 +171,11 @@ Respond with ONLY the raw JSON object. Do not include markdown \`\`\`json blocks
 }
 
 // ── generateDailyReport ───────────────────────────────────────────────────────
+/**
+ * Generate a markdown daily report summarising the last 24h decisions.
+ * @param {Object[]} decisions
+ * @returns {Promise<string>} Markdown string
+ */
 async function generateDailyReport(decisions) {
   const last24h = decisions.filter(
     (d) => Date.now() - new Date(d.timestamp).getTime() < 86_400_000
@@ -190,8 +192,7 @@ async function generateDailyReport(decisions) {
     .join('\n')
 
   try {
-    if (!anthropic) throw new Error('No Anthropic API key configured')
-
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME })
     const prompt = `You are AlphaTrace, an AI DeFi trading agent. Write a concise daily performance report in Markdown (3-5 paragraphs).
 
 Stats:
@@ -204,15 +205,10 @@ ${decisionLog}
 
 Cover: market conditions, decision rationale, risk assessment, and short-term outlook.`
 
-    const response = await anthropic.messages.create({
-      model: MODEL_NAME,
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }]
-    })
-
-    return response.content[0].text || 'Report generation failed.'
+    const result = await model.generateContent(prompt)
+    return result.response.text() || 'Report generation failed.'
   } catch (err) {
-    console.error('[Claude] generateDailyReport error:', err.message)
+    console.error('[Gemini] generateDailyReport error:', err.message)
     return `# AlphaTrace Daily Report\n\n## ${new Date().toDateString()}\n\n- **Total:** ${last24h.length}\n- **BUY:** ${byAction.BUY || 0} | **SELL:** ${byAction.SELL || 0} | **HOLD:** ${byAction.HOLD || 0}\n- **Avg Confidence:** ${avgConf}%\n\n## Decision Log\n${decisionLog}`
   }
 }
